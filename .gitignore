@@ -1,0 +1,32 @@
+# =====================
+# ENV FILES (IMPORTANT)
+# =====================
+.env
+.env.*
+*.env
+
+# =====================
+# Backend (Node)
+# =====================
+backend/node_modules/
+backend/dist/
+backend/build/
+
+# =====================
+# Frontend (React)
+# =====================
+frontend/node_modules/
+frontend/build/
+frontend/dist/
+
+# =====================
+# Logs
+# =====================
+*.log
+
+# =====================
+# OS / Editor
+# =====================
+.DS_Store
+.vscode/
+.idea/

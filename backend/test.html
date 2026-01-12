@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Socket.IO Meeting Test</title>
+</head>
+
+<body>
+    <h2>Socket.IO Meeting Test</h2>
+
+    <button onclick="joinMeeting()">Join Meeting</button>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const socket = io("http://localhost:3000");
+
+        socket.on("connect", () => {
+            console.log("Connected to server");
+            console.log("Socket ID:", socket.id);
+        });
+
+        socket.on("joined-meeting", (data) => {
+            console.log("Joined meeting:", data);
+        });
+
+        socket.on("new-participant", (data) => {
+            console.log("New participant joined:", data);
+        });
+
+        socket.on("join-error", (msg) => {
+            console.error("Join error:", msg);
+        });
+
+        function joinMeeting() {
+            const meetingId = prompt("Enter Meeting ID:");
+            socket.emit("join-meeting", meetingId);
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>WebRTC Controls Test</title>
+    <style>
+        video {
+            width: 300px;
+            margin: 10px;
+            border: 2px solid black;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>WebRTC Camera & Mic Controls</h2>
+
+    <video id="localVideo" autoplay muted playsinline></video>
+    <video id="remoteVideo" autoplay playsinline></video>
+
+    <br><br>
+
+    <button onclick="joinMeeting()">Join Meeting</button>
+    <button onclick="toggleCamera()">Toggle Camera</button>
+    <button onclick="toggleMic()">Toggle Mic</button>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const socket = io("http://localhost:3000");
+
+        let localStream;
+        let peerConnection;
+        let meetingId;
+        let cameraOn = true;
+        let micOn = true;
+
+        const config = {
+            iceServers: []
+        };
+
+        async function startMedia() {
+            localStream = await navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: true
+            });
+
+            document.getElementById("localVideo").srcObject = localStream;
+        }
+
+        function createPeerConnection() {
+            peerConnection = new RTCPeerConnection(config);
+
+            localStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            });
+
+            peerConnection.ontrack = (event) => {
+                document.getElementById("remoteVideo").srcObject = event.streams[0];
+            };
+
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    socket.emit("webrtc-ice-candidate", {
+                        meetingId,
+                        candidate: event.candidate
+                    });
+                }
+            };
+        }
+
+        socket.on("webrtc-offer", async ({ offer }) => {
+            createPeerConnection();
+            await peerConnection.setRemoteDescription(offer);
+
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+
+            socket.emit("webrtc-answer", {
+                meetingId,
+                answer
+            });
+        });
+
+        socket.on("webrtc-answer", async ({ answer }) => {
+            await peerConnection.setRemoteDescription(answer);
+        });
+
+        socket.on("webrtc-ice-candidate", async ({ candidate }) => {
+            await peerConnection.addIceCandidate(candidate);
+        });
+
+        async function joinMeeting() {
+            meetingId = prompt("Enter Meeting ID:");
+            socket.emit("join-meeting", meetingId);
+
+            await startMedia();
+            createPeerConnection();
+
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+
+            socket.emit("webrtc-offer", {
+                meetingId,
+                offer
+            });
+        }
+
+        function toggleCamera() {
+            const videoTrack = localStream.getVideoTracks()[0];
+            cameraOn = !cameraOn;
+            videoTrack.enabled = cameraOn;
+            alert(cameraOn ? "Camera ON" : "Camera OFF");
+        }
+
+        function toggleMic() {
+            const audioTrack = localStream.getAudioTracks()[0];
+            micOn = !micOn;
+            audioTrack.enabled = micOn;
+            alert(micOn ? "Mic ON" : "Mic OFF");
+        }
+    </script>
+</body>
+
+</html>
